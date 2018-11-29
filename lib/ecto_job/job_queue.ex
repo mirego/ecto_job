@@ -62,18 +62,23 @@ defmodule EctoJob.JobQueue do
   """
   @callback perform(multi :: Multi.t(), params :: map) :: any()
 
-  defmacro __using__(table_name: table_name) do
+  defmacro __using__(opts) do
+    table_name = Keyword.fetch!(opts, :table_name)
+    timestamps_type = Keyword.get(opts, :timestamps_type, :utc_datetime)
+
     quote do
       use Ecto.Schema
       @behaviour EctoJob.JobQueue
+
+      @timestamps_opts [type: unquote(timestamps_type)]
 
       schema unquote(table_name) do
         # SCHEDULED, RESERVED, IN_PROGRESS, FAILED
         field(:state, :string)
         # Time at which reserved/in_progress jobs can be reset to SCHEDULED
-        field(:expires, :utc_datetime)
+        field(:expires, unquote(timestamps_type))
         # Time at which a scheduled job can be reserved
-        field(:schedule, :utc_datetime)
+        field(:schedule, unquote(timestamps_type))
         # Counter for number of attempts for this job
         field(:attempt, :integer)
         # Maximum attempts before this job is FAILED
